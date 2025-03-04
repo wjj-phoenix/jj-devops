@@ -1,0 +1,48 @@
+########## \u9879\u76EE\u57FA\u7840\u914D\u7F6E\u4FE1\u606F ##########
+server:
+  port: 19999
+  servlet:
+    encoding:
+      charset: utf-8
+      force: true
+      enabled: true
+    context-path: /api/devops
+########## Spring \u57FA\u7840\u914D\u7F6E\u4FE1\u606F ##########
+spring:
+  application:
+    name: jj-devops
+  profiles:
+    active: dev
+  mvc:
+    path-match:
+      matching-strategy:  ant_path_matcher
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 15MB
+  threads:
+    virtual:
+      enabled: true
+  main:
+    allow-circular-references: true
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+############## Sa-Token \u914D\u7F6E  ##############
+# token \u540D\u79F0\uFF08\u540C\u65F6\u4E5F\u662F cookie \u540D\u79F0\uFF09
+sa-token:
+  token-name: Authorization
+  # token \u6709\u6548\u671F\uFF08\u5355\u4F4D\uFF1A\u79D2\uFF09 \u9ED8\u8BA430\u5929\uFF0C-1 \u4EE3\u8868\u6C38\u4E45\u6709\u6548
+  timeout: 3600
+  # token \u6700\u4F4E\u6D3B\u8DC3\u9891\u7387\uFF08\u5355\u4F4D\uFF1A\u79D2\uFF09\uFF0C\u5982\u679C token \u8D85\u8FC7\u6B64\u65F6\u95F4\u6CA1\u6709\u8BBF\u95EE\u7CFB\u7EDF\u5C31\u4F1A\u88AB\u51BB\u7ED3\uFF0C\u9ED8\u8BA4-1 \u4EE3\u8868\u4E0D\u9650\u5236\uFF0C\u6C38\u4E0D\u51BB\u7ED3
+  active-timeout: -1
+  # \u662F\u5426\u5141\u8BB8\u540C\u4E00\u8D26\u53F7\u591A\u5730\u540C\u65F6\u767B\u5F55 \uFF08\u4E3A true \u65F6\u5141\u8BB8\u4E00\u8D77\u767B\u5F55, \u4E3A false \u65F6\u65B0\u767B\u5F55\u6324\u6389\u65E7\u767B\u5F55\uFF09
+  is-concurrent: true
+  # \u5728\u591A\u4EBA\u767B\u5F55\u540C\u4E00\u8D26\u53F7\u65F6\uFF0C\u662F\u5426\u5171\u7528\u4E00\u4E2A token \uFF08\u4E3A true \u65F6\u6240\u6709\u767B\u5F55\u5171\u7528\u4E00\u4E2A token, \u4E3A false \u65F6\u6BCF\u6B21\u767B\u5F55\u65B0\u5EFA\u4E00\u4E2A token\uFF09
+  is-share: false
+  # token \u98CE\u683C\uFF08\u9ED8\u8BA4\u53EF\u53D6\u503C\uFF1Auuid\u3001simple-uuid\u3001random-32\u3001random-64\u3001random-128\u3001tik\uFF09
+  token-style: random-64
+  # \u662F\u5426\u8F93\u51FA\u64CD\u4F5C\u65E5\u5FD7
+  is-log: true
+  # token\u524D\u7F00\uFF08\u6B64\u65F6 Sa-Token \u4FBF\u53EF\u5728\u8BFB\u53D6 Token \u65F6\u88C1\u526A\u6389\u524D\u7F00\uFF09
+  token-prefix: Bearer
+
