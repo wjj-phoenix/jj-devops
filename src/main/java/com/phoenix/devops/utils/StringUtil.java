@@ -1,4 +1,4 @@
-package com.phoenix.devops.util;
+package com.phoenix.devops.utils;
 
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.CharUtil;

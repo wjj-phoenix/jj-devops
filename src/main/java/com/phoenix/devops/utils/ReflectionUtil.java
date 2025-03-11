@@ -1,4 +1,4 @@
-package com.phoenix.devops.util;
+package com.phoenix.devops.utils;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.extern.slf4j.Slf4j;

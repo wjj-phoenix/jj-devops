@@ -5,7 +5,7 @@ import cn.dev33.satoken.exception.NotPermissionException;
 import cn.hutool.core.collection.CollUtil;
 import com.phoenix.devops.enums.RespEnum;
 import com.phoenix.devops.lang.Result;
-import com.phoenix.devops.util.JsonUtil;
+import com.phoenix.devops.utils.JsonUtil;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

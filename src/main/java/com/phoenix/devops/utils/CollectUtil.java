@@ -1,4 +1,4 @@
-package com.phoenix.devops.util;
+package com.phoenix.devops.utils;
 
 import org.springframework.lang.NonNull;
 
