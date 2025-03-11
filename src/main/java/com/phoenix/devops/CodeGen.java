@@ -4,6 +4,9 @@ import com.alibaba.druid.pool.DruidDataSource;
 import com.mybatisflex.codegen.Generator;
 import com.mybatisflex.codegen.config.GlobalConfig;
 import com.mybatisflex.codegen.dialect.IDialect;
+import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,11 +18,10 @@ import java.util.Properties;
  * @since 2025-02-17
  */
 public final class CodeGen {
-    private static final String CONF_NAME = "application-dev.properties";
     public static void main(String[] args) {
         // 配置数据源
         DruidDataSource dataSource = new DruidDataSource();
-        Properties properties = CodeGen.readProperties();
+        Properties properties = CodeGen.readYaml();
         dataSource.setUrl(properties.getProperty("spring.datasource.url"));
         dataSource.setUsername(properties.getProperty("spring.datasource.username"));
         dataSource.setPassword(properties.getProperty("spring.datasource.password"));
@@ -37,7 +39,6 @@ public final class CodeGen {
     private static GlobalConfig createGlobalConfigUseStyle() {
         // 创建配置内容
         GlobalConfig globalConfig = new GlobalConfig();
-        globalConfig.setGenerateTable("sys_menu");
         // 设置根包
         globalConfig.setAuthor("wjj-phoenix");
         globalConfig.setSince(LocalDate.now().toString());
@@ -68,6 +69,8 @@ public final class CodeGen {
     }
 
     private static Properties readProperties() {
+        final String CONF_NAME = "application-dev.properties";
+
         Properties properties = new Properties();
         try (InputStream inputStream = ClassLoader.getSystemResourceAsStream(CONF_NAME)) {
             properties.load(inputStream);
@@ -75,5 +78,14 @@ public final class CodeGen {
             throw new RuntimeException(e);
         }
         return properties;
+    }
+
+    private static Properties readYaml() {
+        final String CONF_NAME = "application-dev.yaml";
+
+        Resource resource = new ClassPathResource(CONF_NAME);
+        YamlPropertiesFactoryBean yamlPropertiesFactoryBean = new YamlPropertiesFactoryBean();
+        yamlPropertiesFactoryBean.setResources(resource);
+        return yamlPropertiesFactoryBean.getObject();
     }
 }
