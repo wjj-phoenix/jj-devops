@@ -1,100 +1,122 @@
 package com.phoenix.devops.aspectj;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.json.JSONUtil;
 import com.mybatisflex.core.service.IService;
 import com.phoenix.devops.annotation.RecordLog;
-import com.phoenix.devops.entity.ChangeRecord;
-import com.phoenix.devops.utils.ReflectionUtil;
-import com.phoenix.devops.utils.StringUtil;
+import com.phoenix.devops.function.DefaultOperatorServiceImpl;
+import com.phoenix.devops.function.EasyLogParser;
+import com.phoenix.devops.model.FieldInfo;
+import com.phoenix.devops.model.MethodExecuteResult;
+import com.phoenix.devops.model.RecordLogInfo;
+import com.phoenix.devops.service.impl.DefaultLogRecordServiceImpl;
+import com.phoenix.devops.util.CollectUtil;
+import com.phoenix.devops.util.JsonUtil;
+import com.phoenix.devops.util.ReflectionUtil;
+import com.phoenix.devops.util.StringUtil;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.After;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.util.ObjectUtils;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author wjj-phoenix
- * @since 2025-03-06
+ * @since 2025-03-10
  */
 @Slf4j
 @Aspect
 @Component
 public class RecordLogAspectj {
+    private final DefaultLogRecordServiceImpl logRecordService;
+
+    private final DefaultOperatorServiceImpl operatorService;
+
+    private final EasyLogParser easyLogParser;
+
+    public RecordLogAspectj(DefaultLogRecordServiceImpl logRecordService, DefaultOperatorServiceImpl operatorService, EasyLogParser easyLogParser) {
+        this.logRecordService = logRecordService;
+        this.operatorService = operatorService;
+        this.easyLogParser = easyLogParser;
+    }
+
     @Resource
     private ApplicationContext context;
 
-    // 保存修改之前的数据
-    Map<String, Object> oldMap = new HashMap<>();
-
-    @Before(value = "@annotation(operateLog)")
-    public void boBefore(JoinPoint joinPoint, RecordLog operateLog) {
-        Object oldObject = getResult(joinPoint, operateLog, operateLog.primaryKey());
-        if (operateLog.isCompare()) {
-            // 存储修改前的对象
-            oldMap = objectToMap(oldObject);
-        }
+    /**
+     * 定义切点
+     */
+    @Pointcut("@annotation(recordLog))")
+    public void pointCut(RecordLog recordLog) {
     }
 
-    @After("@annotation(operateLog)")
-    public void around(JoinPoint joinPoint, RecordLog operateLog) {
-        ChangeRecord changeRecord = new ChangeRecord();
-        HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
-        // 从切面织入点处通过反射机制获取织入点处的方法
-        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        // 获取切入点所在的方法
-        Method method = signature.getMethod();
-        // 获取请求的方法名
-        String meName = method.getName();
-        // 获取请求的类名
-        String className = joinPoint.getTarget().getClass().getName();
-        String methodName = className + "." + meName;
-        log.info("切入点方法名: {}", methodName);
-        // 请求uri
-        String uri = request.getRequestURL().toString();
-        log.info("请求路径: {}; 请求方法:{}", uri, request.getMethod());
+    /**
+     * 环绕通知
+     *
+     * @param joinPoint 通知点
+     * @return obj
+     */
+    @Around(value = "pointCut(recordLog)", argNames = "joinPoint, recordLog")
+    public Object around(ProceedingJoinPoint joinPoint, RecordLog recordLog) throws Throwable {
+        Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
         Object[] args = joinPoint.getArgs();
-        // 请求参数 预留
-        String requestParams = JSONUtil.parseArray(args).toString();
-        log.info("请求参数:{}", requestParams);
-        // 创建人信息
-        changeRecord.setChangeTime(LocalDateTime.now());
-        // 操作账户
-        // String account = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Class<?> targetClass = AopUtils.getTargetClass(joinPoint.getTarget());
 
-        Object object = getResult(joinPoint, operateLog, operateLog.primaryKey());
+        List<String> expressTemplate = getExpressTemplate(recordLog);
 
-        switch (operateLog.type()) {
-            case RecordLog.Type.ADD:
+        Map<String, String> customFunctionExecResultMap = easyLogParser.processBeforeExec(expressTemplate, method, args, targetClass);
+
+        Object result = null;
+        MethodExecuteResult executeResult = new MethodExecuteResult(true);
+        try {
+            result = joinPoint.proceed();
+            executeResult.calcExecuteTime();
+        } catch (Throwable e) {
+            executeResult.exception(e);
+        }
+
+        Object object = getResult(joinPoint, recordLog, recordLog.extendField().primaryKey());
+        Map<String, Object> oldMap = new HashMap<>();
+        if (recordLog.extendField().isCompare()) {
+            // 存储修改前的对象
+            oldMap = objectToMap(object);
+        }
+        switch (recordLog.type()) {
+            case RecordLog.Type.INSERT:
                 Map<String, Object> dataMap = objectToMap(object);
                 log.info("新增的数据: {}", dataMap.toString());
                 break;
             case RecordLog.Type.UPDATE:
-                if (operateLog.isCompare()) {
+                if (recordLog.extendField().isCompare()) {
                     // 比较新数据与数据库原数据
-                    List<Map<String, Object>> list = defaultDealUpdate(object, oldMap, operateLog.primaryKey());
+                    List<Map<String, Object>> list = defaultDealUpdate(object, oldMap, recordLog.extendField().primaryKey());
                     for (Map<String, Object> map : list) {
-                        changeRecord.setChangeField(String.valueOf(map.get("filedName")));
-                        changeRecord.setBeforeChange(String.valueOf(map.get("oldValue")));
-                        changeRecord.setAfterChange(String.valueOf(map.get("newValue")));
-                        changeRecord.setTypeId(Long.parseLong(String.valueOf(map.get(operateLog.primaryKey()))));
+                        FieldInfo changeRecord = FieldInfo.builder()
+                                .changeField(String.valueOf(map.get("filedName")))
+                                .beforeChange(String.valueOf(map.get("oldValue")))
+                                .afterChange(String.valueOf(map.get("filedName")))
+                                .typeId(Long.parseLong(String.valueOf(map.get(recordLog.extendField().primaryKey()))))
+                                .build();
                         String remark = "修改" + changeRecord.getChangeField() + "为" + changeRecord.getAfterChange() + ",原" + changeRecord.getChangeField() + "为" + (StringUtil.isBlank(changeRecord.getBeforeChange()) ? "空" : changeRecord.getBeforeChange());
                         changeRecord.setRemark(remark);
+                        log.info("变更字段记录: {}", JsonUtil.toJSONString(changeRecord));
                     }
                 }
             case RecordLog.Type.DELETE:
@@ -102,7 +124,17 @@ public class RecordLogAspectj {
             default:
         }
 
-        log.info("生成的日志:{}", changeRecord);
+        if (!executeResult.isSuccess() && ObjectUtils.isEmpty(recordLog.fail())) {
+            log.warn("[{}] 方法执行失败，EasyLog 失败模板没有配置", method.getName());
+        } else {
+            Map<String, String> templateMap = easyLogParser.processAfterExec(expressTemplate, customFunctionExecResultMap, method, args, targetClass, executeResult.getErrMsg(), result);
+            sendLog(recordLog, result, executeResult, templateMap);
+        }
+        // 抛出异常
+        if (!executeResult.isSuccess()) {
+            throw executeResult.getThrowable();
+        }
+        return result;
     }
 
     private List<Map<String, Object>> defaultDealUpdate(Object newObject, Map<String, Object> oldMap, String tableId) {
@@ -137,13 +169,14 @@ public class RecordLogAspectj {
             throw new RuntimeException("比较异常", e);
         }
     }
-    public Object getResult(JoinPoint joinPoint,  RecordLog logger, String tableId) {
+
+    public Object getResult(JoinPoint joinPoint, RecordLog recordLog, String tableId) {
         Object info = joinPoint.getArgs()[0];
         Object id = ReflectionUtil.getFieldValue(info, tableId);
         Assert.notNull(id, "id不能为空");
-        Class<Long> idType = logger.idType();
+        Class<?> idType = recordLog.extendField().idType();
         if (idType.isInstance(id)) {
-            Class<?> cls = logger.service();
+            Class<?> cls = recordLog.extendField().service();
             IService<?> service = (IService<?>) context.getBean(cls);
             return service.getById((Serializable) id);
         } else {
@@ -159,31 +192,64 @@ public class RecordLogAspectj {
     }
 
     /**
-     * 翻译
+     * 发送日志
      *
-     * @param propertyValue 参数值如：0
-     * @param converterExp  翻译注解的值如：0=男,1=女,2=未知
-     * @param separator     分隔符
-     * @return 解析后值
+     * @param recordLog     日志注解
+     * @param result        结果
+     * @param executeResult 方法执行结果
+     * @param templateMap   模板map
      */
-    public static String convertByExp(String propertyValue, String converterExp, String separator) {
-        StringBuilder propertyString = new StringBuilder();
-        String[] convertSource = converterExp.split(",");
-        for (String item : convertSource) {
-            String[] itemArray = item.split("=");
-            if (StringUtil.containsAny(propertyValue, separator)) {
-                for (String value : propertyValue.split(separator)) {
-                    if (itemArray[0].equals(value)) {
-                        propertyString.append(itemArray[1]).append(separator);
-                        break;
-                    }
-                }
-            } else {
-                if (itemArray[0].equals(propertyValue)) {
-                    return itemArray[1];
-                }
+    private void sendLog(RecordLog recordLog, Object result, MethodExecuteResult executeResult, Map<String, String> templateMap) {
+        RecordLogInfo easyLogInfo = createEasyLogInfo(templateMap, recordLog, executeResult);
+        if (easyLogInfo != null) {
+            easyLogInfo.setResult(JsonUtil.toJSONString(result));
+            log.info("【logRecord】log={}", JsonUtil.toJSONString(easyLogInfo));
+            if (recordLog.type().isSave()) {
+                // 日志插入数据库
+                logRecordService.record(easyLogInfo);
             }
         }
-        return StringUtil.removeAll(propertyString.toString(), separator);
+    }
+
+    /**
+     * 创建操作日志实体
+     *
+     * @param templateMap 模板map
+     * @param recordLog   日志注解
+     * @return easyLogInfo
+     */
+    private RecordLogInfo createEasyLogInfo(Map<String, String> templateMap, RecordLog recordLog, MethodExecuteResult executeResult) {
+        // 记录条件为 false，则不记录
+        if ("false".equalsIgnoreCase(templateMap.get(recordLog.extendField().condition()))) {
+            return null;
+        }
+        RecordLogInfo easyLogInfo = new RecordLogInfo();
+        String operator = templateMap.get(recordLog.operator());
+        if (ObjectUtils.isEmpty(operator)) {
+            operator = operatorService.getOperator();
+        }
+        easyLogInfo.setModule(recordLog.module());
+        easyLogInfo.setType(recordLog.type().getValue());
+        easyLogInfo.setOperator(operator);
+
+        easyLogInfo.setContent(executeResult.isSuccess() ? templateMap.get(recordLog.success()) : templateMap.get(recordLog.fail()));
+        easyLogInfo.setSuccess(executeResult.isSuccess());
+        easyLogInfo.setErrorMsg(executeResult.getErrMsg());
+        easyLogInfo.setExecuteTime(executeResult.getExecuteTime());
+        easyLogInfo.setOperateTime(executeResult.getOperateTime());
+
+        return easyLogInfo;
+    }
+
+
+    /**
+     * 获取不为空的待解析模板
+     *
+     * @param recordLog 日志注解
+     * @return List
+     */
+    private List<String> getExpressTemplate(RecordLog recordLog) {
+        List<String> list = CollectUtil.newArrayList(recordLog.title(), recordLog.operator(), recordLog.success(), recordLog.fail(), recordLog.extendField().condition());
+        return list.stream().filter(s -> !ObjectUtils.isEmpty(s)).collect(Collectors.toList());
     }
 }
