@@ -1,140 +1,66 @@
 package com.phoenix.devops.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
+import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.phoenix.devops.common.SelectCommon;
 import com.phoenix.devops.entity.SysMenu;
 import com.phoenix.devops.mapper.SysMenuMapper;
+import com.phoenix.devops.model.vo.SysMenuVO;
 import com.phoenix.devops.service.ISysMenuService;
+import com.phoenix.devops.service.ISysRoleMenuService;
+import com.phoenix.devops.utils.TreeUtil;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
-import com.mybatisflex.core.paginate.Page;
-import com.mybatisflex.core.query.QueryWrapper;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.CacheConfig;
-import org.springframework.cache.annotation.CacheEvict;
 
-import java.io.Serializable;
-import java.util.Collection;
 import java.util.List;
 
+import static com.phoenix.devops.entity.table.SysRoleMenuTableDef.SYS_ROLE_MENU;
+
 /**
- *  服务层实现。
+ * 服务层实现。
  *
  * @author wjj-phoenix
  * @since 2025-03-11
  */
 @Service
-@CacheConfig(cacheNames = "sysMenu")
-public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>  implements ISysMenuService{
-
+public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> implements ISysMenuService {
+    @Resource
+    private ISysRoleMenuService roleMenuService;
 
     @Override
-    @CacheEvict(allEntries = true)
-    public boolean remove(QueryWrapper query) {
-        return super.remove(query);
+    public List<SysMenuVO> fetchAllSysMenus(String condition) {
+        List<SysMenu> menus = SelectCommon.findAll(condition, mapper);
+        return TreeUtil.generateTrees(BeanUtil.copyToList(menus, SysMenuVO.class));
     }
 
     @Override
-    @CacheEvict(key = "#id")
-    public boolean removeById(Serializable id) {
-        return super.removeById(id);
+    public long addSysMenu(SysMenuVO menuVO) {
+        SysMenu menu = BeanUtil.toBean(menuVO, SysMenu.class);
+        if (!this.save(menu)) {
+            throw new IllegalStateException("添加菜单信息失败!");
+        }
+        return menu.getId();
     }
 
     @Override
-    @CacheEvict(allEntries = true)
-    public boolean removeByIds(Collection<? extends Serializable> ids) {
-        return super.removeByIds(ids);
+    public boolean modSysMenuById(SysMenuVO menuVO) {
+        SysMenu menu = BeanUtil.toBean(menuVO, SysMenu.class);
+        if (this.updateById(menu)) {
+            throw new IllegalStateException("修改菜单信息失败!");
+        }
+        return true;
     }
 
     @Override
-    @CacheEvict(allEntries = true)
-    public boolean update(SysMenu entity, QueryWrapper query) {
-        return super.update(entity, query);
+    public boolean delSysMenuById(long id) {
+        boolean exists = roleMenuService.exists(QueryWrapper.create().where(SYS_ROLE_MENU.MENU_ID.eq(id)));
+        if (exists) {
+            throw new IllegalStateException("该菜单被角色关联，不能删除!");
+        }
+        if (this.removeById(id)) {
+            throw new IllegalStateException("修改菜单信息失败!");
+        }
+        return true;
     }
-
-    @Override
-    @CacheEvict(key = "#entity.id")
-    public boolean updateById(SysMenu entity, boolean ignoreNulls) {
-        return super.updateById(entity, ignoreNulls);
-    }
-
-    @Override
-    @CacheEvict(allEntries = true)
-    public boolean updateBatch(Collection<SysMenu> entities, int batchSize) {
-        return super.updateBatch(entities, batchSize);
-    }
-
-    @Override
-    @Cacheable(key = "#id")
-    public SysMenu getById(Serializable id) {
-        return super.getById(id);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public SysMenu getOne(QueryWrapper query) {
-        return super.getOne(query);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public <R> R getOneAs(QueryWrapper query, Class<R> asType) {
-        return super.getOneAs(query, asType);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public Object getObj(QueryWrapper query) {
-        return super.getObj(query);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public <R> R getObjAs(QueryWrapper query, Class<R> asType) {
-        return super.getObjAs(query, asType);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public List<Object> objList(QueryWrapper query) {
-        return super.objList(query);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public <R> List<R> objListAs(QueryWrapper query, Class<R> asType) {
-        return super.objListAs(query, asType);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public List<SysMenu> list(QueryWrapper query) {
-        return super.list(query);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public <R> List<R> listAs(QueryWrapper query, Class<R> asType) {
-        return super.listAs(query, asType);
-    }
-
-    /**
-     * @deprecated 无法通过注解进行缓存操作。
-     */
-    @Override
-    @Deprecated
-    public List<SysMenu> listByIds(Collection<? extends Serializable> ids) {
-        return super.listByIds(ids);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public long count(QueryWrapper query) {
-        return super.count(query);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #page.getPageSize() + ':' + #page.getPageNumber() + ':' + #query.toSQL()")
-    public <R> Page<R> pageAs(Page<R> page, QueryWrapper query, Class<R> asType) {
-        return super.pageAs(page, query, asType);
-    }
-
 }

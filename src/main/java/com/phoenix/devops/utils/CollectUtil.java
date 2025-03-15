@@ -3,6 +3,7 @@ package com.phoenix.devops.utils;
 import org.springframework.lang.NonNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 
 /**
@@ -10,6 +11,7 @@ import java.util.Collections;
  * @since 2025-03-10
  */
 public final class CollectUtil {
+    @SafeVarargs
     public static <E> ArrayList<E> newArrayList(@NonNull E... elements) {
         int capacity = computeArrayListCapacity(elements.length);
         ArrayList<E> list = new ArrayList<>(capacity);
@@ -31,5 +33,13 @@ public final class CollectUtil {
         } else {
             return value < -2147483648L ? Integer.MIN_VALUE : (int)value;
         }
+    }
+
+    public static boolean isEmpty(Collection<?> collection) {
+        return collection == null || collection.isEmpty();
+    }
+
+    public static boolean isNotEmpty(Collection<?> collection) {
+        return !isEmpty(collection);
     }
 }

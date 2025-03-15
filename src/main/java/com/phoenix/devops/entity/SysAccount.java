@@ -1,17 +1,13 @@
 package com.phoenix.devops.entity;
 
-import com.mybatisflex.annotation.Id;
-import com.mybatisflex.annotation.KeyType;
-import com.mybatisflex.annotation.Table;
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import com.mybatisflex.annotation.*;
+import lombok.*;
 
 import java.io.Serial;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 
 /**
  *  实体类。
@@ -68,12 +64,12 @@ public class SysAccount implements Serializable {
     /**
      * 用户是否被锁
      */
-    private Integer locked;
+    private Locked locked;
 
     /**
      * 用户是否可用
      */
-    private Integer enabled;
+    private Enabled enabled;
 
     /**
      * 创建时间
@@ -95,4 +91,35 @@ public class SysAccount implements Serializable {
      */
     private Long createdUser;
 
+    @RelationManyToMany(
+            selfField = "id",
+            joinTable = "sys_account_role", joinSelfColumn = "account_id", joinTargetColumn = "role_id",
+            targetTable = "sys_role", targetField = "id"
+    )
+    private List<SysRole> roles;
+
+    @Column(ignore = true)
+    private Collection<String> authorities;
+
+    @Getter
+    @AllArgsConstructor
+    public enum Enabled {
+        ENABLED(1, "启用"),
+        DISABLED(0, "禁用");
+
+        @EnumValue
+        private final int code;
+        private final String desc;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public enum Locked {
+        LOCKED(1, "锁定"),
+        UNLOCKED(0, "未锁定");
+
+        @EnumValue
+        private final int code;
+        private final String desc;
+    }
 }

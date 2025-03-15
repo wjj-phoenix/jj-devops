@@ -5,7 +5,6 @@ import com.mybatisflex.core.BaseMapper;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryColumn;
 import com.mybatisflex.core.query.QueryWrapper;
-import com.mybatisflex.core.service.IService;
 import com.phoenix.devops.utils.ParamUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,11 +21,11 @@ public class SelectCommon<T> {
      * 根据条件查询信息
      *
      * @param condition 条件
-     * @param service   查询实体
+     * @param mapper   查询实体
      * @return 查询结果
      */
-    public List<T> findAll(String condition, IService<T> service) {
-        return service.list(wrapper(condition));
+    public static <T> List<T> findAll(String condition, BaseMapper<T> mapper) {
+        return mapper.selectListByQuery(wrapper(condition));
     }
 
     /**
@@ -35,11 +34,11 @@ public class SelectCommon<T> {
      * @param page      页码
      * @param limit     每页大小
      * @param condition 查询条件
-     * @param service   查询实体
+     * @param mapper   查询实体
      * @return 分页对象
      */
-    public Page<T> findAllPaginate(Integer page, Integer limit, String condition, IService<T> service) {
-        return service.page(new Page<>(page, limit), wrapper(condition));
+    public static <T> Page<T> findAllPaginate(Integer page, Integer limit, String condition, BaseMapper<T> mapper) {
+        return mapper.paginate(new Page<>(page, limit), wrapper(condition));
     }
 
     /**
@@ -49,7 +48,7 @@ public class SelectCommon<T> {
      * @param mapper    查询实体
      * @return 查询结果
      */
-    public List<T> findAllWithRelations(String condition, BaseMapper<T> mapper) {
+    public static <T> List<T> findAllWithRelations(String condition, BaseMapper<T> mapper) {
         return mapper.selectListWithRelationsByQuery(wrapper(condition));
     }
 
@@ -62,11 +61,11 @@ public class SelectCommon<T> {
      * @param mapper    查询实体
      * @return 分页对象
      */
-    public Page<T> findAllPaginateWithRelations(Integer page, Integer limit, String condition, BaseMapper<T> mapper) {
+    public static <T> Page<T> findAllPaginateWithRelations(Integer page, Integer limit, String condition, BaseMapper<T> mapper) {
         return mapper.paginateWithRelations(new Page<>(page, limit), wrapper(condition));
     }
 
-    private QueryWrapper wrapper(String condition) {
+    private static QueryWrapper wrapper(String condition) {
         QueryWrapper wrapper = QueryWrapper.create().where("1 = 1");
         if (StrUtil.isNotBlank(condition)) {
             Map<String, Object> map = ParamUtil.split(condition);

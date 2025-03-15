@@ -14,19 +14,8 @@ import java.util.List;
 
 @Configuration
 public class IRecordLogConfiguration {
-
     @PostConstruct
     public void printBanner() {
-       /*  System.out.println("" +
-                "     ________                        _________     ______ ________________\n" +
-                "     ___  __ \\_____________________________  /     ___  / __  __ \\_  ____/\n" +
-                "     __  /_/ /  _ \\  ___/  __ \\_  ___/  __  /________  /  _  / / /  / __  \n" +
-                "     _  _, _//  __/ /__ / /_/ /  /   / /_/ /_/_____/  /___/ /_/ // /_/ /  \n" +
-                "     /_/ |_| \\___/\\___/ \\____//_/   \\__,_/        /_____/\\____/ \\____/   \n" +
-                "                                                                          " +
-                "        <<Record-LOG>>                                " + EasyLogVersion.getVersion()
-        ); */
-
         ClassPathResource classPathResource = new ClassPathResource("banner-log.txt");
         try (InputStreamReader reader = new InputStreamReader(classPathResource.getInputStream())) {
             BufferedReader bufferedReader = new BufferedReader(reader);

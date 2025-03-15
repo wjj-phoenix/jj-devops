@@ -1,140 +1,91 @@
 package com.phoenix.devops.service.impl;
 
-import com.mybatisflex.spring.service.impl.ServiceImpl;
-import com.phoenix.devops.entity.SysRole;
-import com.phoenix.devops.mapper.SysRoleMapper;
-import com.phoenix.devops.service.ISysRoleService;
-import org.springframework.stereotype.Service;
+import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.CacheConfig;
-import org.springframework.cache.annotation.CacheEvict;
+import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.phoenix.devops.common.SelectCommon;
+import com.phoenix.devops.entity.SysRole;
+import com.phoenix.devops.entity.SysRoleMenu;
+import com.phoenix.devops.lang.IPage;
+import com.phoenix.devops.mapper.SysRoleMapper;
+import com.phoenix.devops.model.vo.SysRoleVO;
+import com.phoenix.devops.service.ISysAccountRoleService;
+import com.phoenix.devops.service.ISysRoleMenuService;
+import com.phoenix.devops.service.ISysRoleService;
+import com.phoenix.devops.utils.CollectUtil;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.List;
+
+import static com.phoenix.devops.entity.table.SysRoleMenuTableDef.SYS_ROLE_MENU;
 
 /**
- *  服务层实现。
+ * 服务层实现。
  *
  * @author wjj-phoenix
  * @since 2025-03-11
  */
 @Service
-@CacheConfig(cacheNames = "sysRole")
-public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>  implements ISysRoleService{
-
+public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> implements ISysRoleService {
+    @Resource
+    private ISysAccountRoleService accountRoleService;
+    @Resource
+    private ISysRoleMenuService roleMenuService;
 
     @Override
-    @CacheEvict(allEntries = true)
-    public boolean remove(QueryWrapper query) {
-        return super.remove(query);
+    public IPage<SysRoleVO> fetchAllSysRolesWithPage(int page, int limit, String condition) {
+        Page<SysRole> roles = SelectCommon.findAllPaginate(page, limit, condition, mapper);
+        if (CollectUtil.isNotEmpty(roles.getRecords())) {
+            return IPage.of(
+                    roles.getPageNumber(),
+                    roles.getPageSize(),
+                    roles.getTotalRow(),
+                    roles.getTotalPage(),
+                    BeanUtil.copyToList(roles.getRecords(), SysRoleVO.class)
+            );
+        }
+        return IPage.empty();
     }
 
     @Override
-    @CacheEvict(key = "#id")
-    public boolean removeById(Serializable id) {
-        return super.removeById(id);
+    public long addSysRole(SysRoleVO entity) {
+        SysRole role = BeanUtil.toBean(entity, SysRole.class);
+        if (!this.save(role)) {
+            throw new IllegalStateException("添加角色信息失败!");
+        }
+        if (CollectUtil.isNotEmpty(entity.getMenuIds())) {
+            roleMenuService.saveBatch(entity.getMenuIds().stream().map(menuId -> new SysRoleMenu(role.getId(), menuId)).toList());
+        }
+        return role.getId();
     }
 
     @Override
-    @CacheEvict(allEntries = true)
-    public boolean removeByIds(Collection<? extends Serializable> ids) {
-        return super.removeByIds(ids);
+    public boolean modSysRoleById(SysRoleVO entity) {
+        SysRole role = BeanUtil.toBean(entity, SysRole.class);
+        if (this.updateById(role)) {
+            throw new IllegalStateException("修改角色信息失败!");
+        }
+
+        if (CollectUtil.isNotEmpty(entity.getMenuIds())) {
+            roleMenuService.remove(QueryWrapper.create().where(SYS_ROLE_MENU.ROLE_ID.eq(role.getId())));
+            roleMenuService.saveBatch(entity.getMenuIds().stream().map(menuId -> new SysRoleMenu(role.getId(), menuId)).toList());
+        }
+        return true;
     }
 
     @Override
-    @CacheEvict(allEntries = true)
-    public boolean update(SysRole entity, QueryWrapper query) {
-        return super.update(entity, query);
+    public boolean delSysRoleByIds(Collection<? extends Serializable> ids) {
+        boolean exists = accountRoleService.exists(QueryWrapper.create().where(SYS_ROLE_MENU.ROLE_ID.in(ids)));
+        if (exists) {
+            throw new IllegalStateException("删除角色中存在已被使用，不能删除!");
+        }
+        if (!this.removeByIds(ids)) {
+            throw new IllegalStateException("删除角色信息失败!");
+        }
+        roleMenuService.remove(QueryWrapper.create().where(SYS_ROLE_MENU.ROLE_ID.in(ids)));
+        return true;
     }
-
-    @Override
-    @CacheEvict(key = "#entity.id")
-    public boolean updateById(SysRole entity, boolean ignoreNulls) {
-        return super.updateById(entity, ignoreNulls);
-    }
-
-    @Override
-    @CacheEvict(allEntries = true)
-    public boolean updateBatch(Collection<SysRole> entities, int batchSize) {
-        return super.updateBatch(entities, batchSize);
-    }
-
-    @Override
-    @Cacheable(key = "#id")
-    public SysRole getById(Serializable id) {
-        return super.getById(id);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public SysRole getOne(QueryWrapper query) {
-        return super.getOne(query);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public <R> R getOneAs(QueryWrapper query, Class<R> asType) {
-        return super.getOneAs(query, asType);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public Object getObj(QueryWrapper query) {
-        return super.getObj(query);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public <R> R getObjAs(QueryWrapper query, Class<R> asType) {
-        return super.getObjAs(query, asType);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public List<Object> objList(QueryWrapper query) {
-        return super.objList(query);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public <R> List<R> objListAs(QueryWrapper query, Class<R> asType) {
-        return super.objListAs(query, asType);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public List<SysRole> list(QueryWrapper query) {
-        return super.list(query);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public <R> List<R> listAs(QueryWrapper query, Class<R> asType) {
-        return super.listAs(query, asType);
-    }
-
-    /**
-     * @deprecated 无法通过注解进行缓存操作。
-     */
-    @Override
-    @Deprecated
-    public List<SysRole> listByIds(Collection<? extends Serializable> ids) {
-        return super.listByIds(ids);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #query.toSQL()")
-    public long count(QueryWrapper query) {
-        return super.count(query);
-    }
-
-    @Override
-    @Cacheable(key = "#root.methodName + ':' + #page.getPageSize() + ':' + #page.getPageNumber() + ':' + #query.toSQL()")
-    public <R> Page<R> pageAs(Page<R> page, QueryWrapper query, Class<R> asType) {
-        return super.pageAs(page, query, asType);
-    }
-
 }
