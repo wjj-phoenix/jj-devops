@@ -1,6 +1,5 @@
 package com.phoenix.devops.controller;
 
-import com.phoenix.devops.entity.SysAccount;
 import com.phoenix.devops.lang.IPage;
 import com.phoenix.devops.model.Add;
 import com.phoenix.devops.model.vo.SysAccountVO;
@@ -32,7 +31,7 @@ public class SysAccountController {
      * @param accountVO
      * @return {@code true} 添加成功，{@code false} 添加失败
      */
-    @PostMapping("save")
+    @PostMapping()
     public long save(@Validated({Add.class}) @RequestBody SysAccountVO accountVO) {
         return service.addSysAccount(accountVO);
     }
@@ -57,17 +56,6 @@ public class SysAccountController {
     @PutMapping()
     public boolean modSysAccountById(@RequestBody SysAccountVO accountVO) {
         return service.modSysAccountById(accountVO);
-    }
-
-    /**
-     * 根据主键获取详细信息。
-     *
-     * @param username 主键
-     * @return 详情
-     */
-    @GetMapping("info")
-    public SysAccount getInfo(@RequestParam String username) {
-        return service.fetchSysAccountWithRelationsByUsername(username);
     }
 
     /**

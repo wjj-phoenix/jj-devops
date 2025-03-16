@@ -26,23 +26,14 @@ public final class CodeGen {
         dataSource.setUsername(properties.getProperty("spring.datasource.username"));
         dataSource.setPassword(properties.getProperty("spring.datasource.password"));
 
-        // 创建配置内容，两种风格都可以。
-        GlobalConfig globalConfig = CodeGen.createGlobalConfigUseStyle();
-
-        // 通过 datasource 和 globalConfig 创建代码生成器
-        Generator generator = new Generator(dataSource, globalConfig, IDialect.MYSQL);
-
-        // 生成代码
-        generator.generate();
-    }
-
-    private static GlobalConfig createGlobalConfigUseStyle() {
         // 创建配置内容
         GlobalConfig globalConfig = new GlobalConfig();
         // 设置根包
         globalConfig.setAuthor("wjj-phoenix");
         globalConfig.setSince(LocalDate.now().toString());
         globalConfig.setBasePackage(CodeGen.class.getPackage().getName());
+
+        globalConfig.setGenerateTable("resource_auth", "machine");
 
         // 设置生成 entity 并启用 Lombok
         globalConfig.enableEntity()
@@ -65,7 +56,11 @@ public final class CodeGen {
 
         globalConfig.setControllerGenerateEnable(true);
 
-        return globalConfig;
+        // 通过 datasource 和 globalConfig 创建代码生成器
+        Generator generator = new Generator(dataSource, globalConfig, IDialect.MYSQL);
+
+        // 生成代码
+        generator.generate();
     }
 
     private static Properties readProperties() {

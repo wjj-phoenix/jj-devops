@@ -1,6 +1,7 @@
 package com.phoenix.devops.controller;
 
 import com.phoenix.devops.model.Add;
+import com.phoenix.devops.model.Mod;
 import com.phoenix.devops.model.vo.SysMenuVO;
 import com.phoenix.devops.service.ISysMenuService;
 import jakarta.annotation.Resource;
@@ -51,7 +52,7 @@ public class SysMenuController {
      * @return {@code true} 更新成功，{@code false} 更新失败
      */
     @PutMapping()
-    public boolean modSysMenuById(@RequestBody SysMenuVO menuVO) {
+    public boolean modSysMenuById(@Validated({Mod.class}) @RequestBody SysMenuVO menuVO) {
         return service.modSysMenuById(menuVO);
     }
 
@@ -61,7 +62,7 @@ public class SysMenuController {
      * @return 所有数据
      */
     @GetMapping()
-    public List<SysMenuVO> fetchAllSysMenus(@RequestParam String condition) {
+    public List<SysMenuVO> fetchAllSysMenus(@RequestParam(required = false, defaultValue = "", name = "condition") String condition) {
         return service.fetchAllSysMenus(condition);
     }
 }

@@ -46,7 +46,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
     @Override
     public boolean modSysMenuById(SysMenuVO menuVO) {
         SysMenu menu = BeanUtil.toBean(menuVO, SysMenu.class);
-        if (this.updateById(menu)) {
+        if (!this.updateById(menu)) {
             throw new IllegalStateException("修改菜单信息失败!");
         }
         return true;
@@ -58,8 +58,8 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         if (exists) {
             throw new IllegalStateException("该菜单被角色关联，不能删除!");
         }
-        if (this.removeById(id)) {
-            throw new IllegalStateException("修改菜单信息失败!");
+        if (!this.removeById(id)) {
+            throw new IllegalStateException("删除菜单信息失败!");
         }
         return true;
     }

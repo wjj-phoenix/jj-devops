@@ -15,11 +15,14 @@ import com.phoenix.devops.service.ISysRoleMenuService;
 import com.phoenix.devops.service.ISysRoleService;
 import com.phoenix.devops.utils.CollectUtil;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.List;
 
+import static com.phoenix.devops.entity.table.SysAccountRoleTableDef.SYS_ACCOUNT_ROLE;
 import static com.phoenix.devops.entity.table.SysRoleMenuTableDef.SYS_ROLE_MENU;
 
 /**
@@ -28,6 +31,7 @@ import static com.phoenix.devops.entity.table.SysRoleMenuTableDef.SYS_ROLE_MENU;
  * @author wjj-phoenix
  * @since 2025-03-11
  */
+@Slf4j
 @Service
 public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> implements ISysRoleService {
     @Resource
@@ -36,8 +40,13 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     private ISysRoleMenuService roleMenuService;
 
     @Override
+    public List<SysRoleVO> fetchAllSysRoles() {
+        return BeanUtil.copyToList(this.list(), SysRoleVO.class);
+    }
+
+    @Override
     public IPage<SysRoleVO> fetchAllSysRolesWithPage(int page, int limit, String condition) {
-        Page<SysRole> roles = SelectCommon.findAllPaginate(page, limit, condition, mapper);
+        Page<SysRole> roles = SelectCommon.findAllPaginateWithRelations(page, limit, condition, mapper);
         if (CollectUtil.isNotEmpty(roles.getRecords())) {
             return IPage.of(
                     roles.getPageNumber(),
@@ -65,7 +74,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     public boolean modSysRoleById(SysRoleVO entity) {
         SysRole role = BeanUtil.toBean(entity, SysRole.class);
-        if (this.updateById(role)) {
+        if (!this.updateById(role)) {
             throw new IllegalStateException("修改角色信息失败!");
         }
 
@@ -78,14 +87,14 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
     @Override
     public boolean delSysRoleByIds(Collection<? extends Serializable> ids) {
-        boolean exists = accountRoleService.exists(QueryWrapper.create().where(SYS_ROLE_MENU.ROLE_ID.in(ids)));
+        boolean exists = accountRoleService.exists(QueryWrapper.create().where(SYS_ACCOUNT_ROLE.ROLE_ID.in(ids)));
         if (exists) {
             throw new IllegalStateException("删除角色中存在已被使用，不能删除!");
         }
+        roleMenuService.remove(QueryWrapper.create().where(SYS_ROLE_MENU.ROLE_ID.in(ids)));
         if (!this.removeByIds(ids)) {
             throw new IllegalStateException("删除角色信息失败!");
         }
-        roleMenuService.remove(QueryWrapper.create().where(SYS_ROLE_MENU.ROLE_ID.in(ids)));
         return true;
     }
 }

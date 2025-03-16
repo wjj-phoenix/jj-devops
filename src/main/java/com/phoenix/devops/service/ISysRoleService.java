@@ -7,6 +7,7 @@ import com.phoenix.devops.model.vo.SysRoleVO;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * 服务层。
@@ -15,6 +16,12 @@ import java.util.Collection;
  * @since 2025-03-11
  */
 public interface ISysRoleService extends IService<SysRole> {
+    /**
+     * 查询所有数据
+     * @return 角色
+     */
+    List<SysRoleVO> fetchAllSysRoles();
+
     /**
      * 分页查询所有数据
      * @param page 页码

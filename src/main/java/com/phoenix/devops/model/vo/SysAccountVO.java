@@ -1,6 +1,5 @@
 package com.phoenix.devops.model.vo;
 
-import com.phoenix.devops.entity.SysRole;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -101,7 +100,7 @@ public class SysAccountVO {
     private Long createdUser;
 
     @Schema(description = "角色集合")
-    private List<SysRole> roles;
+    private List<String> roles;
 
     @Schema(description = "角色ID集合")
     private Set<Long> roleIds;

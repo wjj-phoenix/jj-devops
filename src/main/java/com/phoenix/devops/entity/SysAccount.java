@@ -6,7 +6,6 @@ import lombok.*;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -94,12 +93,18 @@ public class SysAccount implements Serializable {
     @RelationManyToMany(
             selfField = "id",
             joinTable = "sys_account_role", joinSelfColumn = "account_id", joinTargetColumn = "role_id",
-            targetTable = "sys_role", targetField = "id"
+            targetTable = "sys_role", targetField = "id",
+            valueField = "id"
     )
-    private List<SysRole> roles;
+    private List<Long> roleIds;
 
-    @Column(ignore = true)
-    private Collection<String> authorities;
+    @RelationManyToMany(
+            selfField = "id",
+            joinTable = "sys_account_role", joinSelfColumn = "account_id", joinTargetColumn = "role_id",
+            targetTable = "sys_role", targetField = "id",
+            valueField = "code"
+    )
+    private List<String> roles;
 
     @Getter
     @AllArgsConstructor

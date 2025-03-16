@@ -2,19 +2,20 @@ package com.phoenix.devops.entity;
 
 import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
+import com.mybatisflex.annotation.RelationManyToMany;
 import com.mybatisflex.annotation.Table;
-import java.io.Serializable;
-import java.time.LocalDateTime;
-
-import java.io.Serial;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.List;
+
 /**
- *  实体类。
+ * 实体类。
  *
  * @author wjj-phoenix
  * @since 2025-03-11
@@ -69,5 +70,13 @@ public class SysRole implements Serializable {
      * 更新时间
      */
     private LocalDateTime updatedTime;
+
+    @RelationManyToMany(
+            selfField = "id",
+            joinTable = "sys_role_menu", joinSelfColumn = "role_id", joinTargetColumn = "menu_id",
+            targetTable = "sys_menu", targetField = "id",
+            valueField = "id"
+    )
+    private List<Long> menuIds;
 
 }

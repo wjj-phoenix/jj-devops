@@ -22,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
-import java.util.List;
 import java.util.Set;
 
 import static com.phoenix.devops.entity.table.SysAccountRoleTableDef.SYS_ACCOUNT_ROLE;
@@ -43,8 +42,9 @@ public class SysAccountServiceImpl extends ServiceImpl<SysAccountMapper, SysAcco
     private ISysRoleService roleService;
 
     @Override
-    public SysAccount fetchSysAccountWithRelationsByUsername(String username) {
-        return mapper.selectOneWithRelationsByQuery(QueryWrapper.create().where(SYS_ACCOUNT.USERNAME.eq(username)));
+    public SysAccountVO fetchSysAccountWithRelationsByID(long id) {
+        SysAccount account = mapper.selectOneWithRelationsByQuery(QueryWrapper.create().where(SYS_ACCOUNT.ID.eq(id)));
+        return BeanUtil.toBean(account, SysAccountVO.class);
     }
 
     @Override
@@ -54,10 +54,9 @@ public class SysAccountServiceImpl extends ServiceImpl<SysAccountMapper, SysAcco
 
     @Override
     public IPage<SysAccountVO> fetchAllAccountsByCondition(Integer page, Integer limit, String condition) {
-        Page<SysAccount> accountPage = SelectCommon.findAllPaginate(page, limit, condition, mapper);
+        Page<SysAccount> accountPage = SelectCommon.findAllPaginateWithRelations(page, limit, condition, mapper);
         if (CollUtil.isNotEmpty(accountPage.getRecords())) {
-            List<SysAccountVO> accountVOS = BeanUtil.copyToList(accountPage.getRecords(), SysAccountVO.class);
-            return IPage.of(accountPage.getPageNumber(), accountPage.getPageSize(), accountPage.getTotalPage(), accountPage.getTotalRow(), accountVOS);
+            return IPage.of(accountPage.getPageNumber(), accountPage.getPageSize(), accountPage.getTotalPage(), accountPage.getTotalRow(), BeanUtil.copyToList(accountPage.getRecords(), SysAccountVO.class));
         }
         return IPage.empty();
     }
@@ -65,6 +64,8 @@ public class SysAccountServiceImpl extends ServiceImpl<SysAccountMapper, SysAcco
     @Override
     public long addSysAccount(SysAccountVO accountVO) {
         SysAccount account = BeanUtil.toBean(accountVO, SysAccount.class);
+        account.setPassword("password");
+        account.setCreatedUser(1L);
         if (!this.save(account)) {
             throw new IllegalStateException("添加用户信息失败");
         }
@@ -89,10 +90,10 @@ public class SysAccountServiceImpl extends ServiceImpl<SysAccountMapper, SysAcco
 
     @Override
     public boolean delSysAccount(Set<Long> ids) {
+        accountRoleService.remove(QueryWrapper.create().where(SYS_ACCOUNT_ROLE.ACCOUNT_ID.in(ids)));
         if (!this.removeByIds(ids)) {
             throw new IllegalStateException("删除用户失败");
         }
-        accountRoleService.remove(QueryWrapper.create().where(SYS_ACCOUNT_ROLE.ACCOUNT_ID.in(ids)));
         return true;
     }
 

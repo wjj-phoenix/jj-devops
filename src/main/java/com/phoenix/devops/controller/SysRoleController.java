@@ -9,6 +9,7 @@ import jakarta.annotation.Resource;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -18,7 +19,6 @@ import java.util.Set;
  * @since 2025-03-11
  */
 @RestController
-@RequestMapping("/role")
 public class SysRoleController {
     @Resource
     private ISysRoleService service;
@@ -29,7 +29,7 @@ public class SysRoleController {
      * @param roleVO 角色信息
      * @return {@code true} 添加成功，{@code false} 添加失败
      */
-    @PostMapping()
+    @PostMapping("/role")
     public long addSysRole(@Validated({Add.class}) @RequestBody SysRoleVO roleVO) {
         return service.addSysRole(roleVO);
     }
@@ -40,7 +40,7 @@ public class SysRoleController {
      * @param ids 主键
      * @return {@code true} 删除成功，{@code false} 删除失败
      */
-    @DeleteMapping()
+    @DeleteMapping("/role")
     public boolean delSysRoleByIds(@RequestBody Set<Long> ids) {
         return service.delSysRoleByIds(ids);
     }
@@ -51,7 +51,7 @@ public class SysRoleController {
      * @param roleVO
      * @return {@code true} 更新成功，{@code false} 更新失败
      */
-    @PutMapping()
+    @PutMapping("/role")
     public boolean modSysRoleById(@Validated({Mod.class}) @RequestBody SysRoleVO roleVO) {
         return service.modSysRoleById(roleVO);
     }
@@ -64,13 +64,18 @@ public class SysRoleController {
      * @param condition 条件
      * @return 分页对象
      */
-    @GetMapping()
+    @GetMapping("/role")
     public IPage<SysRoleVO> fetchAllSysRolesWithPage(
             @RequestParam(value = "page", required = false, defaultValue = "1") Integer page,
             @RequestParam(value = "limit", required = false, defaultValue = "20") Integer limit,
             @RequestParam(value = "condition", defaultValue = "", required = false) String condition
     ) {
         return service.fetchAllSysRolesWithPage(page, limit, condition);
+    }
+
+    @GetMapping("/roles")
+    public List<SysRoleVO> fetchAllSysRoles() {
+        return service.fetchAllSysRoles();
     }
 
 }

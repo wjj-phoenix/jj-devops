@@ -18,10 +18,10 @@ public interface ISysAccountService extends IService<SysAccount> {
     /**
      * 根据用户名查询关联信息
      *
-     * @param username 用户名
+     * @param id 用户ID
      * @return 用户信息
      */
-    SysAccount fetchSysAccountWithRelationsByUsername(String username);
+    SysAccountVO fetchSysAccountWithRelationsByID(long id);
 
     /**
      * 更具用户名查询用户信息
